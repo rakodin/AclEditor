@@ -19,6 +19,11 @@
 			<version>3.117.0-0842</version>
 		</dependency>
 		<dependency>
+			<groupId>org.eclipse.swt.win32</groupId>
+			<artifactId>x86_64</artifactId>
+			<version>3.117.0-0842</version>
+		</dependency>
+		<dependency>
 			<groupId>org.eclipse.osgi</groupId>
 			<artifactId>osgi</artifactId>
 			<version>3.17.0-1805</version>
