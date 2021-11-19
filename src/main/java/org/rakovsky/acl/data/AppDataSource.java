@@ -19,7 +19,8 @@ public class AppDataSource {
 	private static AppDataSource instance;
 	private final static Lock instanceLock = new ReentrantLock(true);
 	private String datasourceSchema;
-	private static final String schemaPropName = "dataSourceSchema";
+	private static final String confPrefix = "dataSource.";
+	private static final String schemaPropName = String.format("%sschemaName", confPrefix);
 	private AppDataSource(String config) {
 		//HikariConfig cfg = new HikariConfig(config);
 		Properties poolProps = new Properties();
@@ -29,16 +30,17 @@ public class AppDataSource {
 			p.load(is);
 			this.datasourceSchema = p.getProperty(schemaPropName);
 			p.stringPropertyNames().stream()
-			.filter(n -> n.startsWith("dataSourc"))
-			.collect(Collectors.toList()).forEach(pv 
-					-> poolProps.setProperty(pv, p.getProperty(pv)));
-			poolProps.setProperty("jdbcUrl", p.getProperty("jdbcUrl"));
+			.filter(n -> (n.startsWith(confPrefix) && !n.equals(schemaPropName)))
+			.collect(Collectors.toList())
+			.forEach(pv -> poolProps.setProperty(pv.replaceFirst(confPrefix, "")
+					, p.getProperty(pv)));
 		} catch (IOException e) {
 			throw new RuntimeException("Can't read properties from file '" + config + "'", e);
 		}
 		
 		HikariConfig cfg = new HikariConfig(poolProps);
 		if (this.datasourceSchema  != null) {
+			//System.out.println("Set current schema to " + datasourceSchema);
 			cfg.setConnectionInitSql("alter session set current_schema = " + datasourceSchema);
 		}
 		this.ds = new HikariDataSource(cfg);
