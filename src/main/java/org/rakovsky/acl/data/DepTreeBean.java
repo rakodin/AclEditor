@@ -3,13 +3,11 @@ package org.rakovsky.acl.data;
 import java.util.Objects;
 
 public class DepTreeBean {
-	private String depId;
 	private String id;
 	private String parentId;
 	private String name;
 
-	public DepTreeBean(String depId, String id, String parentId, String name) {
-		this.depId = depId;
+	public DepTreeBean(String id, String parentId, String name) {
 		this.id = id;
 		this.parentId = parentId;
 		this.name = name;
@@ -39,17 +37,9 @@ public class DepTreeBean {
 		this.name = name;
 	}
 
-	public String getDepId() {
-		return this.depId;
-	}
-	
-	public void setDepId(String depId) {
-		this.depId = depId;
-	}
-	
 	@Override
 	public int hashCode() {
-		return Objects.hash(depId, id, parentId);
+		return Objects.hash(id);
 	}
 
 	@Override
@@ -61,15 +51,12 @@ public class DepTreeBean {
 		if (getClass() != obj.getClass())
 			return false;
 		DepTreeBean other = (DepTreeBean) obj;
-		return Objects.equals(depId, other.depId) && Objects.equals(id, other.id)
-				&& Objects.equals(parentId, other.parentId);
+		return Objects.equals(id, other.id);
 	}
 
 	@Override
 	public String toString() {
-		return "DepTreeBean [depId=" + depId + ", id=" + id + ", parentId=" + parentId + ", name=" + name + "]";
+		return String.format("DepTreeBean [id=%s, parentId=%s, name=%s]", id, parentId, name);
 	}
-
-
 
 }

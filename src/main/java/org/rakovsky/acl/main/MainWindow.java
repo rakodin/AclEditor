@@ -1,11 +1,13 @@
 package org.rakovsky.acl.main;
 
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CLabel;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Display;
@@ -122,27 +124,8 @@ public class MainWindow {
 						.getDepartments(getConfiguration(config.getSelectionIndex()));
 
 				depTree.removeAll();
-
-				list.forEach(b -> {
-					//TODO: implement true tree traversal
-					TreeItem item = null;
-					if (b.getParentId() == null) {
-						item = new TreeItem(depTree, SWT.NULL);
-					} else {
-						for (TreeItem i : depTree.getItems()) {
-							DepTreeBean db = (DepTreeBean) i.getData();
-							if (db.getId().equals(b.getParentId())) {
-								item = new TreeItem(i, SWT.NULL);
-							}
-						}
-					}
-					if (item != null) {
-						item.setData(b);
-						item.setExpanded(true);
-						item.setText(b.getName());
-					}
-				});
-				// depTree.getItems() -- return array of added items
+				empTable.removeAll();
+				buildTree(list, depTree);
 			}
 		});
 
@@ -151,18 +134,56 @@ public class MainWindow {
 			@Override
 			public void handleEvent(Event arg0) {
 				DepTreeBean selected = (DepTreeBean) arg0.item.getData();
-				String depTreeId = selected.getDepId();
+				String depTreeId = selected.getId();
 				List<EmplBean> employee = ConfigurationRepository.getEmployeeList(depTreeId);
 				empTable.removeAll();
 				employee.forEach(em -> {
 					TableItem item = new TableItem(empTable, SWT.NULL);
 					item.setData(em);
 					item.setText(new String[] {em.getName(), em.getLogin()});
+					Date now = new Date(System.currentTimeMillis());
+					if (em.getEndDate().before(now) || em.getStartDate().after(now)) {
+						item.setBackground(new Color(100,0,0));
+					}
 				});
 				empTable.setLinesVisible(true);
 			}
 
 		});
+	}
+	
+	private List<TreeItem> getRoots(List<DepTreeBean> items, Tree depTree) {
+		final List<TreeItem> ret = new ArrayList<>();
+		items.stream()
+			.filter(i -> i.getParentId() == null)
+			.forEach(i -> {
+				TreeItem item = new TreeItem(depTree, SWT.NULL);
+				item.setData(i);
+				item.setExpanded(true);
+				item.setText(i.getName());
+				ret.add(item);
+			});
+		return ret;
+	}
+	
+	private void buildTree(List<DepTreeBean> items, Tree depTree) {
+		List<TreeItem> roots = getRoots(items, depTree);
+		if (roots.size() > 0) {
+			roots.forEach(r-> drawTree(items, r));
+		}
+	}
+	
+	private void drawTree(List<DepTreeBean> buffer, TreeItem current) {
+		DepTreeBean cur = (DepTreeBean) current.getData();
+		for (DepTreeBean bean: buffer) {
+			if (cur.getId().equals(bean.getParentId())) {
+				TreeItem item = new TreeItem(current, SWT.NULL);
+				item.setData(bean);
+				item.setExpanded(true);
+				item.setText(bean.getName());
+				drawTree(buffer, item);
+			}
+		}
 	}
 
 	private static void loadConfigurations() {

@@ -31,18 +31,16 @@ public class ConfigurationRepository {
 		Connection c = AppDataSource.getInstance().getConnection();
 		List<DepTreeBean> ret = new ArrayList<>();
 		try {
-			String sql = "WITH DEPS AS (SELECT D.FUNC_DEPARTMENT_CD, D.DEPARTMENT_CD, D.PARENT_DEPARTMENT_CD, PPN.PERSON_NAME\n"
-					+ "FROM CFG_FUNC_DEPARTMENT D INNER JOIN PER_PERSON_NAME PPN "
-					+ "ON PPN.PERSON_ID = D.DEPARTMENT_CD AND PPN.PERSON_NAME_TYPE_CD = 'FULL_NAME' "
-					+ "AND D.CONFIGURATION_CD = ?)\n"
-					+ "SELECT DP.FUNC_DEPARTMENT_CD, DP.DEPARTMENT_CD, DP.PERSON_NAME, DP.PARENT_DEPARTMENT_CD, level FROM  DEPS DP\n"
-					+ "START WITH PARENT_DEPARTMENT_CD IS NULL CONNECT BY PRIOR DEPARTMENT_CD = PARENT_DEPARTMENT_CD";
+			String sql = "WITH DEPS AS (SELECT D.FUNC_DEPARTMENT_CD, D.PARENT_DEPARTMENT_CD, D.DESCR "
+					+ "FROM CFG_FUNC_DEPARTMENT D "
+					+ "WHERE D.CONFIGURATION_CD = ?)\n"
+					+ "SELECT DP.* FROM  DEPS DP\n"
+					+ "START WITH PARENT_DEPARTMENT_CD IS NULL CONNECT BY PRIOR FUNC_DEPARTMENT_CD = PARENT_DEPARTMENT_CD";
 			PreparedStatement s = c.prepareStatement(sql);
 			s.setString(1, configId);
 			ResultSet rs = s.executeQuery();
 			while (rs.next()) {
-				ret.add(new DepTreeBean(rs.getString("FUNC_DEPARTMENT_CD"), rs.getString("DEPARTMENT_CD"),
-						rs.getString("PARENT_DEPARTMENT_CD"), rs.getString("PERSON_NAME")));
+				ret.add(new DepTreeBean(rs.getString("FUNC_DEPARTMENT_CD"), rs.getString("PARENT_DEPARTMENT_CD"), rs.getString("DESCR")));
 			}
 			rs.close();
 			s.close();
@@ -59,7 +57,7 @@ public class ConfigurationRepository {
 		Connection c = AppDataSource.getInstance().getConnection();
 		List<EmplBean> ret = new ArrayList<>();
 		try {
-			String sql = "select E.FUNC_EMPLOYEE_CD, E.PERSON_ID, E.FUNC_DEPARTMENT_CD, S.LOGIN, S.USER_SECOND_NAME, "
+			String sql = "select E.FUNC_EMPLOYEE_CD, E.PERSON_ID, E.FUNC_DEPARTMENT_CD, E.START_DT, E.END_DT, S.LOGIN, S.USER_SECOND_NAME, "
 					+ "S.USER_NAME, S.USER_PATRONYMIC_NAME "
 					+ "FROM CFG_FUNC_EMPLOYEE E INNER JOIN PER_PERSON PP ON PP.PERSON_ID =  E.PERSON_ID \n"
 					+ "INNER JOIN SU_USER S ON S.USER_ID = PP.LINKED_USER_ID WHERE E.FUNC_DEPARTMENT_CD = ?";
@@ -70,7 +68,7 @@ public class ConfigurationRepository {
 				ret.add(new EmplBean(rs.getString("FUNC_EMPLOYEE_CD"), rs.getString("PERSON_ID"),
 						rs.getString("FUNC_DEPARTMENT_CD"), String.format("%s %s %s", rs.getString("USER_SECOND_NAME"),
 								rs.getString("USER_NAME"), rs.getString("USER_PATRONYMIC_NAME")),
-						rs.getString("LOGIN")));
+						rs.getString("LOGIN"), rs.getDate("START_DT"), rs.getDate("END_DT")));
 
 			}
 			rs.close();
