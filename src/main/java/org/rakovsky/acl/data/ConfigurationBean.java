@@ -1,29 +1,17 @@
 package org.rakovsky.acl.data;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+
+@Data
+@AllArgsConstructor
+@ToString
+@EqualsAndHashCode
 public class ConfigurationBean {
 	private String id;
 	private String name;
 	
-	
-	public ConfigurationBean(String id, String name) {
-		this.id = id;
-		this.name = name;
-	}
-	public String getId() {
-		return id;
-	}
-	public void setId(String id) {
-		this.id = id;
-	}
-	public String getName() {
-		return name;
-	}
-	public void setName(String name) {
-		this.name = name;
-	}
-	@Override
-	public String toString() {
-		return "ConfigurationBean [id=" + id + ", name=" + name + "]";
-	}
-	
+	public static ConfigurationBean EMPTY = new ConfigurationBean(" ", "---");
 }
