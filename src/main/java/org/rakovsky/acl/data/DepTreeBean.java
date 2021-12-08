@@ -9,8 +9,6 @@ import com.ibm.icu.impl.Pair;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.EqualsAndHashCode.Exclude;
 import lombok.ToString;
 
 @Data

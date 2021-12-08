@@ -4,7 +4,6 @@ import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -34,7 +33,6 @@ import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
-import org.eclipse.swt.widgets.Widget;
 import org.rakovsky.acl.data.AppDataSource;
 import org.rakovsky.acl.data.ConfigurationBean;
 import org.rakovsky.acl.data.ConfigurationRepository;
@@ -242,17 +240,13 @@ public class MainWindow {
 			@Override
 			public void handleEvent(Event arg0) {
 				int res = createYesNoDialog(shell, ((DepTreeBean) btnDeleteDep.getData()).getName()).open();
-				System.out.println(res);
 				if (res == SWT.YES) {
 					DepTreeBean removed = (DepTreeBean) btnDeleteDep.getData();
 					String parentDep = removed.getParentId();
-					System.out.println("TODO: remove " + removed.getId());
-
 					TreeItem root = findTreeItemByTreeId(depTree, removed.getId());
 					if (root != null) {
 						List<String> removedDeps = new ArrayList<>();
 						findChildsByTreeItems(root, removedDeps);
-						System.out.println("TODO: All removed deps: " + removedDeps);
 						// remove deps
 						ConfigurationRepository.removeDepartmentWithChilds(removedDeps);
 						// reload UI
@@ -281,7 +275,6 @@ public class MainWindow {
 								depTree.showSelection();
 							}
 						}
-						System.out.println("TODO: select parent dep: " + selected);
 					}
 				}
 			}
@@ -463,16 +456,16 @@ public class MainWindow {
 				} else if (d.first == DepTreeField.PARENT_DEPARTMENT_CD) {
 					if (forEdit) {
 						t = new Combo(dialog, height - 4);
-						//((Combo) t).add(parentDep != null ? parentDep.getName() : "--", 0);
+						// ((Combo) t).add(parentDep != null ? parentDep.getName() : "--", 0);
 						drawDepCombo((Combo) t, parentDep, edited);
-						
+
 					} else {
 						t = new Text(dialog, SWT.SINGLE | SWT.BORDER | SWT.READ_ONLY);
 						((Text) t).setText(parentDep != null ? parentDep.getName() : "--");
 					}
 				} else {
 					t = new Text(dialog, SWT.SINGLE | SWT.BORDER);
-					((Text) t).setText(newDep.getName() != null? newDep.getName() : "");
+					((Text) t).setText(newDep.getName() != null ? newDep.getName() : "");
 					((Text) t).setTextLimit(500);
 					t.setBackground(new Color(100, 100, 100));
 					t.setFocus();
@@ -489,6 +482,7 @@ public class MainWindow {
 		btnSave.setSize(110, height);
 		btnSave.setText("Сохранить");
 		btnSave.addListener(SWT.Selection, new Listener() {
+			@SuppressWarnings("unchecked")
 			@Override
 			public void handleEvent(Event arg0) {
 				Control[] childs = dialog.getChildren();
@@ -504,15 +498,13 @@ public class MainWindow {
 							c.setBackground(new Color(100, 0, 0));
 						}
 					} else if (c instanceof Combo) {
+						@SuppressWarnings("rawtypes")
 						List<String> deps = (List) c.getData();
 						int selected = ((Combo) c).getSelectionIndex();
-						System.out.println("Changed dep id: " + deps.get(selected));
 						newDep.setParentId(deps.get(selected));
-						
 					}
 				});
 				if (found.get()) {
-					System.out.println(newDep);
 					final String newBeanId;
 					if (forEdit) {
 						newBeanId = newDep.getId();
@@ -545,34 +537,26 @@ public class MainWindow {
 	}
 
 	private void drawDepCombo(Combo depCombo, DepTreeBean parentDep, DepTreeBean dep) {
-		// TODO Auto-generated method stub
 		List<String> deps = new ArrayList<>();
 		deps.add(null);
 		depCombo.add("--", 0);
 		int selected = 0;
-		//if (parentDep != null) {
-			List<DepTreeBean> avial = ConfigurationRepository.getDepartments(dep.getConfId());
-			List<DepTreeBean> childs = new ArrayList<>();
-			findChildsByDepTreeBean(avial, dep, childs);
-			System.out.println(childs);
-			 //cut all childs
-			avial.removeAll(childs);
-			avial.remove(dep);
-			drawTreeForCombo(avial);
-			//TODO: draw tree in combo and add root
-			for (int i=1; i <= avial.size(); i++) {
-				DepTreeBean b = avial.get(i-1);
-				deps.add(b.getId());
-				depCombo.add(b.getName(), i);
-				if (parentDep != null && b.getId().equals(parentDep.getId())) {
-					selected = i;
-				}
+		List<DepTreeBean> avial = ConfigurationRepository.getDepartments(dep.getConfId());
+		List<DepTreeBean> childs = new ArrayList<>();
+		findChildsByDepTreeBean(avial, dep, childs);
+		// cut all childs
+		avial.removeAll(childs);
+		avial.remove(dep);
+		drawTreeForCombo(avial);
+		// draw tree in combo and add root
+		for (int i = 1; i <= avial.size(); i++) {
+			DepTreeBean b = avial.get(i - 1);
+			deps.add(b.getId());
+			depCombo.add(b.getName(), i);
+			if (parentDep != null && b.getId().equals(parentDep.getId())) {
+				selected = i;
 			}
-			 
-		//} else {
-			//System.out.println("parent dep null");
-		//}
-		
+		}
 		depCombo.select(selected);
 		depCombo.setData(deps);
 	}
@@ -642,7 +626,7 @@ public class MainWindow {
 	}
 
 	private TreeItem findTreeItemByTreeId(Tree tree, String treeId) {
-		for (TreeItem ti: tree.getItems()) {
+		for (TreeItem ti : tree.getItems()) {
 			DepTreeBean b = (DepTreeBean) ti.getData();
 			if (b.getId().equals(treeId)) {
 				return ti;
@@ -654,7 +638,7 @@ public class MainWindow {
 		}
 		return null;
 	}
-	
+
 	private TreeItem _findTreeItemByTreeId(TreeItem root, String treeId) {
 		DepTreeBean rootBean = (DepTreeBean) root.getData();
 		if (rootBean.getId().equals(treeId)) {
@@ -698,9 +682,7 @@ public class MainWindow {
 						depTree.setSelection(selectedItem);
 						depTree.showSelection();
 					}
-					System.out.println("Selected dep: " + selected);
 				}
-
 			}
 		});
 		return dialog;
@@ -723,31 +705,31 @@ public class MainWindow {
 			}
 		}
 	}
-	
+
 	private static void drawTreeForCombo(List<DepTreeBean> items) {
-		for (DepTreeBean b: items) {
+		for (DepTreeBean b : items) {
 			if (b.getParentId() == null) {
 				drawTreeForCombo(items, b, 1);
-				//break;
+				// break;
 			}
 		}
 	}
-	
+
 	private static void drawTreeForCombo(List<DepTreeBean> items, DepTreeBean parent, int level) {
-		for (DepTreeBean b: items) {
+		for (DepTreeBean b : items) {
 			if (parent.getId().equals(b.getParentId())) {
 				String t = "";
-				for (int i=0; i < level; i++) {
-					t +="  ";
+				for (int i = 0; i < level; i++) {
+					t += "  ";
 				}
 				b.setName(t + " " + b.getName());
-				drawTreeForCombo(items, b ,level+1);
+				drawTreeForCombo(items, b, level + 1);
 			}
 		}
 	}
-	
+
 	private static void findChildsByDepTreeBean(List<DepTreeBean> items, DepTreeBean parent, List<DepTreeBean> childs) {
-		for (DepTreeBean b: items) {
+		for (DepTreeBean b : items) {
 			if (parent.getId().equals(b.getParentId())) {
 				childs.add(b);
 				findChildsByDepTreeBean(items, b, childs);
