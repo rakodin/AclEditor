@@ -57,17 +57,22 @@ public class AppDataSource {
 		}
 	}
 
-	public Connection getConnection() {
+	private Connection _getConnection() {
 		try {
-			return instance.ds.getConnection();
+			Connection c = instance.ds.getConnection();
+			return c;
 		} catch (SQLException e) {
 			throw new RuntimeException("Can't obtain new connection from pool", e);
 		}
 	}
 
-	public void closeConnection(Connection c) {
+	private void _closeConnection(Connection c) {
 		try {
 			if (c != null && !c.isClosed()) {
+				if (!c.isReadOnly() && !c.getAutoCommit()) {
+					System.out.println("Commit...");
+					c.commit();
+				}
 				c.close();
 			}
 		} catch (SQLException e) {
@@ -75,7 +80,12 @@ public class AppDataSource {
 		}
 	}
 	
-	public static AppDataSource getInstance() {
-		return instance;
+	
+	public static Connection get() {
+		return instance._getConnection();
+	}
+	
+	public static void close(Connection c) {
+		instance._closeConnection(c);
 	}
 }

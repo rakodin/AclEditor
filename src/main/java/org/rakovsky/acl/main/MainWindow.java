@@ -3,20 +3,30 @@ package org.rakovsky.acl.main;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CLabel;
+import org.eclipse.swt.events.DisposeEvent;
+import org.eclipse.swt.events.DisposeListener;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
+import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.Scrollable;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
@@ -24,11 +34,14 @@ import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
+import org.eclipse.swt.widgets.Widget;
 import org.rakovsky.acl.data.AppDataSource;
 import org.rakovsky.acl.data.ConfigurationBean;
 import org.rakovsky.acl.data.ConfigurationRepository;
 import org.rakovsky.acl.data.DepTreeBean;
+import org.rakovsky.acl.data.DepTreeField;
 import org.rakovsky.acl.data.EmplBean;
+import org.rakovsky.acl.data.EmplField;
 
 import com.ibm.icu.impl.Pair;
 
@@ -37,6 +50,7 @@ public class MainWindow {
 	protected Shell shell;
 	private static List<ConfigurationBean> configurations = new ArrayList<>();// = List.of("---", "SPB", "TST", "MSK",
 																				// "TMB", "ETC");
+	private Combo config;
 	protected Tree depTree;
 
 	private static final SimpleDateFormat sdf = new SimpleDateFormat("MM.dd.yyyy");
@@ -48,8 +62,11 @@ public class MainWindow {
 	private Button btnDisableEmp;
 	private Button btnDetailsEmp;
 	private Button btnAddEmp;
+	private Button btnInsertDep;
 	private TableColumn empStartDtCol;
 	private TableColumn empEndDtCol;
+	private Button btnEditDep;
+	private Button btnDeleteDep;
 
 	/**
 	 * @wbp.nonvisual location=358,797
@@ -101,16 +118,13 @@ public class MainWindow {
 
 		lblNewLabel.setText("Конфигурация");
 
-		Combo config = new Combo(shell, SWT.READ_ONLY | SWT.DROP_DOWN | SWT.BORDER | SWT.V_SCROLL);
+		config = new Combo(shell, SWT.READ_ONLY | SWT.DROP_DOWN | SWT.BORDER | SWT.V_SCROLL);
 
 		config.setItems(
 				configurations.stream().map(c -> c.getName()).collect(Collectors.toList()).toArray(new String[0]));
 
 		config.select(0);
 		config.setBounds(138, 10, 509, 32);
-
-		Label label = new Label(shell, SWT.SEPARATOR | SWT.HORIZONTAL);
-		label.setBounds(8, 41, 658, 2);
 
 		Group grpDep = new Group(shell, SWT.NONE);
 		grpDep.setText("Департаменты");
@@ -121,11 +135,21 @@ public class MainWindow {
 		depTree.setSize(697, 224);
 		depTree.setLayoutData(new GridData(GridData.FILL_BOTH));
 
-		Button btnInsertDep = new Button(grpDep, SWT.NONE);
+		btnInsertDep = new Button(grpDep, SWT.NONE);
 		btnInsertDep.setLocation(12, 247);
 		btnInsertDep.setSize(173, 32);
 		btnInsertDep.setText("Добавить");
 		btnInsertDep.setEnabled(false);
+
+		btnEditDep = new Button(grpDep, SWT.NONE);
+		btnEditDep.setText("Редактировать");
+		btnEditDep.setEnabled(false);
+		btnEditDep.setBounds(192, 247, 173, 32);
+
+		btnDeleteDep = new Button(grpDep, SWT.NONE);
+		btnDeleteDep.setText("Удалить");
+		btnDeleteDep.setEnabled(false);
+		btnDeleteDep.setBounds(372, 247, 173, 32);
 
 		Group grpEmp = new Group(shell, SWT.NONE);
 		grpEmp.setText("Сотрудники");
@@ -179,7 +203,7 @@ public class MainWindow {
 		btnAddEmp = new Button(grpEmp, SWT.NONE);
 		btnAddEmp.setText("Добавить");
 		btnAddEmp.setBounds(423, 257, 194, 32);
-		
+
 		btnDetailsEmp.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event arg0) {
@@ -187,8 +211,8 @@ public class MainWindow {
 				empDetailDialog.open();
 			}
 		});
-		
-		btnDisableEmp.addListener(SWT.Selection, new Listener() {	
+
+		btnDisableEmp.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event arg0) {
 				String option = "Disable";
@@ -199,20 +223,74 @@ public class MainWindow {
 				System.out.println(option + " employee: " + selected.toString());
 			}
 		});
-		
+
 		btnInsertDep.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event arg0) {
-				System.out.println("Add department to: config: " + btnInsertDep.getData("config") + " parent: " + (
-						btnInsertDep.getData("parent") != null? btnInsertDep.getData("parent") : "null" ));
+				createDepartmentDialogWithDisposeListener(null).open();
 			}
-			
 		});
-		
-		btnAddEmp.addListener(SWT.Selection, new Listener() {			
+
+		btnEditDep.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event arg0) {
-				DepTreeBean selected = (DepTreeBean) btnAddEmp.getData(); 
+				createDepartmentDialogWithDisposeListener((DepTreeBean) btnEditDep.getData()).open();
+			}
+		});
+
+		btnDeleteDep.addListener(SWT.Selection, new Listener() {
+			@Override
+			public void handleEvent(Event arg0) {
+				int res = createYesNoDialog(shell, ((DepTreeBean) btnDeleteDep.getData()).getName()).open();
+				System.out.println(res);
+				if (res == SWT.YES) {
+					DepTreeBean removed = (DepTreeBean) btnDeleteDep.getData();
+					String parentDep = removed.getParentId();
+					System.out.println("TODO: remove " + removed.getId());
+
+					TreeItem root = findTreeItemByTreeId(depTree, removed.getId());
+					if (root != null) {
+						List<String> removedDeps = new ArrayList<>();
+						findChildsByTreeItems(root, removedDeps);
+						System.out.println("TODO: All removed deps: " + removedDeps);
+						// remove deps
+						ConfigurationRepository.removeDepartmentWithChilds(removedDeps);
+						// reload UI
+						int current = config.getSelectionIndex();
+						config.deselectAll();
+						config.select(current);
+						onSelectCombo(config.getSelectionIndex());
+
+						// refill tree
+						depTree.deselectAll();
+
+						DepTreeBean selected = depTree.getItemCount() > 0 ? (DepTreeBean) depTree.getItem(0).getData()
+								: null; // default
+						if (parentDep != null) {
+							root = findTreeItemByTreeId(depTree, parentDep);
+							if (root != null) {
+								selected = (DepTreeBean) root.getData();
+							}
+						}
+						if (selected != null) {
+							onSelectDepartment(selected);
+							// find treeitem in new tree
+							TreeItem selectedItem = findTreeItemByTreeId(depTree, selected.getId());
+							if (selectedItem != null) {
+								depTree.setSelection(selectedItem);
+								depTree.showSelection();
+							}
+						}
+						System.out.println("TODO: select parent dep: " + selected);
+					}
+				}
+			}
+		});
+
+		btnAddEmp.addListener(SWT.Selection, new Listener() {
+			@Override
+			public void handleEvent(Event arg0) {
+				DepTreeBean selected = (DepTreeBean) btnAddEmp.getData();
 				System.out.println("Add employee to: " + selected.toString());
 			}
 		});
@@ -221,29 +299,21 @@ public class MainWindow {
 		btnDetailsEmp.setEnabled(false);
 		btnDisableEmp.setEnabled(false);
 
-		config.addListener(SWT.Selection, new Listener() {
-			@Override
-			public void handleEvent(Event arg0) {
-				ConfigurationBean conf = getConfiguration(config.getSelectionIndex());
-				btnDisableEmp.setEnabled(false);
-				btnDetailsEmp.setEnabled(false);
-				btnAddEmp.setEnabled(false);
-				if (conf.equals(ConfigurationBean.EMPTY)) {
-					btnInsertDep.setEnabled(false);
-				} else {
-					btnInsertDep.setEnabled(true);
-					btnInsertDep.setData("config", conf);
-					btnInsertDep.setData("parent", null);
-				}
+		config.addSelectionListener(new SelectionListener() {
 
-				List<DepTreeBean> list = ConfigurationRepository.getDepartments(conf.getId());
-				btnAddEmp.redraw();
-				btnInsertDep.redraw();
-				btnDisableEmp.redraw();
-				btnDetailsEmp.redraw();
-				depTree.removeAll();
-				empTable.removeAll();
-				buildTree(list, depTree);
+			private void handleEvent(SelectionEvent arg0) {
+				onSelectCombo(config.getSelectionIndex());
+			}
+
+			@Override
+			public void widgetDefaultSelected(SelectionEvent arg0) {
+				handleEvent(arg0);
+
+			}
+
+			@Override
+			public void widgetSelected(SelectionEvent arg0) {
+				handleEvent(arg0);
 			}
 		});
 
@@ -251,35 +321,8 @@ public class MainWindow {
 
 			@Override
 			public void handleEvent(Event arg0) {
-				DepTreeBean selected = (DepTreeBean) arg0.item.getData();
-				btnInsertDep.setData("parent", selected);
-				String depTreeId = selected.getId();
-				List<EmplBean> employee = ConfigurationRepository.getEmployeeList(depTreeId);
-				empTable.removeAll();
-				btnDetailsEmp.setEnabled(false);
-				btnDisableEmp.setEnabled(false);
-				btnDisableEmp.redraw();
-				btnDetailsEmp.redraw();
-				btnInsertDep.redraw();
-				
-				btnAddEmp.setEnabled(true);				
-				btnAddEmp.setData(selected);
-				btnAddEmp.redraw();
-				
-				employee.forEach(em -> {
-					TableItem item = new TableItem(empTable, SWT.NULL);
-
-					item.setData(em);
-					item.setText(new String[] { em.getSuUserId(), em.getPersonId(), em.getName(), em.getLogin(),
-							sdf.format(em.getStartDate()), sdf.format(em.getEndDate()) });
-					Date now = new Date(System.currentTimeMillis());
-					if (em.getEndDate().before(now) || em.getStartDate().after(now)) {
-						item.setBackground(new Color(100, 0, 0));
-					}
-				});
-				empTable.setLinesVisible(true);
+				onSelectDepartment((DepTreeBean) ((TreeItem) arg0.item).getData());
 			}
-
 		});
 
 		empTable.addListener(SWT.Selection, new Listener() {
@@ -296,10 +339,10 @@ public class MainWindow {
 				}
 				btnDisableEmp.setData(em);
 				btnDetailsEmp.setData(em);
-				
+
 				btnDetailsEmp.setEnabled(true);
 				btnDisableEmp.setEnabled(true);
-				
+
 				btnDetailsEmp.redraw();
 				btnDisableEmp.redraw();
 			}
@@ -317,7 +360,7 @@ public class MainWindow {
 		});
 		return ret;
 	}
-	
+
 	private void buildTree(List<DepTreeBean> items, Tree depTree) {
 		List<TreeItem> roots = getRoots(items, depTree);
 		if (roots.size() > 0) {
@@ -348,19 +391,23 @@ public class MainWindow {
 	}
 
 	private Shell createDetailsDialog(Shell parent, EmplBean empl) {
-		Shell empDetailsDialog = new Shell(parent, SWT.APPLICATION_MODAL | SWT.DIALOG_TRIM);
-		empDetailsDialog.setText(empl.getName());
-		empDetailsDialog.setSize(350, 350);
+		Shell dialog = new Shell(parent, SWT.APPLICATION_MODAL | SWT.DIALOG_TRIM);
+		dialog.setText(empl.getName());
+		dialog.setSize(550, 350);
 		int height = 28;
 		int h = 20;
-		for (Pair<String, String> d : empl.getColumns()) {
-			Text l = new Text(empDetailsDialog, SWT.SINGLE | SWT.BORDER | SWT.READ_ONLY);
-			l.setBounds(20, h, 300, 26);
-			l.setToolTipText(d.first);
-			l.setText(d.second);
+		for (Pair<EmplField, String> d : EmplBean.getColumns(empl)) {
+			Label l = new Label(dialog, SWT.NONE);
+			l.setBounds(20, h, 200, 26);
+			l.setText(d.first.getDescr());
+			Text t = new Text(dialog, SWT.SINGLE | SWT.BORDER | SWT.READ_ONLY);
+			t.setBounds(205, h, 300, 26);
+			t.setToolTipText(d.first.name());
+			t.setText(d.second);
+			t.setData(d);
 			h = h + height;
 		}
-		Button btnClose = new Button(empDetailsDialog, SWT.NONE);
+		Button btnClose = new Button(dialog, SWT.NONE);
 		btnClose.setLocation(20, h + height);
 		btnClose.setSize(110, height);
 		btnClose.setText("Закрыть");
@@ -368,9 +415,343 @@ public class MainWindow {
 		btnClose.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event arg0) {
-				empDetailsDialog.close();
+				dialog.close();
 			}
 		});
-		return empDetailsDialog;
+
+		return dialog;
+	}
+
+	private Shell createDepartmentOperationDialog(Shell parentShell, ConfigurationBean conf, DepTreeBean parentDep,
+			DepTreeBean edited) {
+		Shell dialog = new Shell(parentShell, SWT.APPLICATION_MODAL | SWT.DIALOG_TRIM);
+		final boolean forEdit;
+		if (edited == null) {
+			dialog.setText("Новый департамент");
+			forEdit = false;
+		} else {
+			forEdit = true;
+			dialog.setText("Редактировать департамент");
+		}
+		dialog.setSize(690, 210);
+		int height = 28;
+		int h = 20;
+
+		final DepTreeBean newDep;
+		if (forEdit) {
+			newDep = edited;
+			parentDep = null;
+			if (edited.getParentId() != null && edited.getParentId() != " ") {
+				TreeItem parent = findTreeItemByTreeId(depTree, edited.getParentId());
+				if (parent != null) {
+					parentDep = (DepTreeBean) parent.getData();
+				}
+			}
+		} else {
+			newDep = DepTreeBean.newDepartment(conf.getId(), parentDep != null ? parentDep.getId() : null);
+		}
+		for (Pair<DepTreeField, String> d : DepTreeBean.getColumns(newDep)) {
+			DepTreeField field = d.first;
+			if (d.first != DepTreeField.FUNC_DEPARTMENT_CD) {
+				Label l = new Label(dialog, SWT.NONE);
+				l.setBounds(20, h, 260, 26);
+				l.setText(d.first.getDescr());
+				Scrollable t;
+				if (d.first == DepTreeField.CONFIGUDATION_CD) {
+					t = new Text(dialog, SWT.SINGLE | SWT.BORDER | SWT.READ_ONLY);
+					((Text) t).setText(conf.getName());
+				} else if (d.first == DepTreeField.PARENT_DEPARTMENT_CD) {
+					if (forEdit) {
+						t = new Combo(dialog, height - 4);
+						//((Combo) t).add(parentDep != null ? parentDep.getName() : "--", 0);
+						drawDepCombo((Combo) t, parentDep, edited);
+						
+					} else {
+						t = new Text(dialog, SWT.SINGLE | SWT.BORDER | SWT.READ_ONLY);
+						((Text) t).setText(parentDep != null ? parentDep.getName() : "--");
+					}
+				} else {
+					t = new Text(dialog, SWT.SINGLE | SWT.BORDER);
+					((Text) t).setText(newDep.getName() != null? newDep.getName() : "");
+					((Text) t).setTextLimit(500);
+					t.setBackground(new Color(100, 100, 100));
+					t.setFocus();
+					t.setData(field);
+				}
+				((Control) t).setToolTipText(field.name());
+				((Control) t).setBounds(270, h, 390, 26);
+				h = h + height;
+			}
+		}
+
+		Button btnSave = new Button(dialog, SWT.NONE);
+		btnSave.setLocation(20, h + height);
+		btnSave.setSize(110, height);
+		btnSave.setText("Сохранить");
+		btnSave.addListener(SWT.Selection, new Listener() {
+			@Override
+			public void handleEvent(Event arg0) {
+				Control[] childs = dialog.getChildren();
+				final AtomicBoolean found = new AtomicBoolean(false);
+				Arrays.asList(childs).forEach(c -> {
+					if (c.getData() != null && (c.getData() instanceof DepTreeField)
+							&& ((DepTreeField) c.getData()) == DepTreeField.DESCR) {
+						String newDepName = ((Text) c).getText();
+						if (!newDepName.trim().isBlank()) {
+							newDep.setName(newDepName.trim());
+							found.set(true);
+						} else {
+							c.setBackground(new Color(100, 0, 0));
+						}
+					} else if (c instanceof Combo) {
+						List<String> deps = (List) c.getData();
+						int selected = ((Combo) c).getSelectionIndex();
+						System.out.println("Changed dep id: " + deps.get(selected));
+						newDep.setParentId(deps.get(selected));
+						
+					}
+				});
+				if (found.get()) {
+					System.out.println(newDep);
+					final String newBeanId;
+					if (forEdit) {
+						newBeanId = newDep.getId();
+						ConfigurationRepository.updateDepartment(newDep);
+					} else {
+						newBeanId = ConfigurationRepository.insertDepartment(newDep);
+						newDep.setId(newBeanId);
+					}
+					// todo: refresh
+					dialog.setData("refresh", Boolean.TRUE);
+
+					dialog.setData("selection", newDep);
+					dialog.close();
+				}
+			}
+		});
+
+		Button btnClose = new Button(dialog, SWT.NONE);
+		btnClose.setLocation(130, h + height);
+		btnClose.setSize(110, height);
+		btnClose.setText("Закрыть");
+		btnClose.addListener(SWT.Selection, new Listener() {
+			@Override
+			public void handleEvent(Event arg0) {
+				dialog.close();
+			}
+		});
+
+		return dialog;
+	}
+
+	private void drawDepCombo(Combo depCombo, DepTreeBean parentDep, DepTreeBean dep) {
+		// TODO Auto-generated method stub
+		List<String> deps = new ArrayList<>();
+		deps.add(null);
+		depCombo.add("--", 0);
+		int selected = 0;
+		//if (parentDep != null) {
+			List<DepTreeBean> avial = ConfigurationRepository.getDepartments(dep.getConfId());
+			List<DepTreeBean> childs = new ArrayList<>();
+			findChildsByDepTreeBean(avial, dep, childs);
+			System.out.println(childs);
+			 //cut all childs
+			avial.removeAll(childs);
+			avial.remove(dep);
+			drawTreeForCombo(avial);
+			//TODO: draw tree in combo and add root
+			for (int i=1; i <= avial.size(); i++) {
+				DepTreeBean b = avial.get(i-1);
+				deps.add(b.getId());
+				depCombo.add(b.getName(), i);
+				if (parentDep != null && b.getId().equals(parentDep.getId())) {
+					selected = i;
+				}
+			}
+			 
+		//} else {
+			//System.out.println("parent dep null");
+		//}
+		
+		depCombo.select(selected);
+		depCombo.setData(deps);
+	}
+
+	private void onSelectCombo(int selectionIndex) {
+		ConfigurationBean conf = getConfiguration(selectionIndex);
+		btnDisableEmp.setEnabled(false);
+		btnDetailsEmp.setEnabled(false);
+		btnAddEmp.setEnabled(false);
+
+		btnEditDep.setEnabled(false);
+		btnDeleteDep.setEnabled(false);
+
+		if (conf.equals(ConfigurationBean.EMPTY)) {
+			btnInsertDep.setEnabled(false);
+		} else {
+			btnInsertDep.setEnabled(true);
+			btnInsertDep.setData("config", conf);
+			btnInsertDep.setData("parent", null);
+		}
+
+		List<DepTreeBean> list = ConfigurationRepository.getDepartments(conf.getId());
+		btnAddEmp.redraw();
+		btnInsertDep.redraw();
+		btnDisableEmp.redraw();
+		btnDetailsEmp.redraw();
+		depTree.removeAll();
+		empTable.removeAll();
+		buildTree(list, depTree);
+	}
+
+	private void onSelectDepartment(DepTreeBean selected) {
+		// DepTreeBean selected = (DepTreeBean) depTreeItem.getData();
+		btnInsertDep.setData("parent", selected);
+		btnDeleteDep.setData(selected);
+		btnEditDep.setData(selected);
+
+		String depTreeId = selected.getId();
+		List<EmplBean> employee = ConfigurationRepository.getEmployeeList(depTreeId);
+		empTable.removeAll();
+		btnDetailsEmp.setEnabled(false);
+		btnDisableEmp.setEnabled(false);
+		btnDisableEmp.redraw();
+		btnDetailsEmp.redraw();
+
+		btnInsertDep.setEnabled(true);
+		btnEditDep.setEnabled(true);
+		btnDeleteDep.setEnabled(true);
+		btnInsertDep.redraw();
+
+		btnAddEmp.setEnabled(true);
+		btnAddEmp.setData(selected);
+		btnAddEmp.redraw();
+
+		employee.forEach(em -> {
+			TableItem item = new TableItem(empTable, SWT.NULL);
+
+			item.setData(em);
+			item.setText(new String[] { em.getSuUserId(), em.getPersonId(), em.getName(), em.getLogin(),
+					sdf.format(em.getStartDate()), sdf.format(em.getEndDate()) });
+			Date now = new Date(System.currentTimeMillis());
+			if (em.getEndDate().before(now) || em.getStartDate().after(now)) {
+				item.setBackground(new Color(100, 0, 0));
+			}
+		});
+		empTable.setLinesVisible(true);
+	}
+
+	private TreeItem findTreeItemByTreeId(Tree tree, String treeId) {
+		for (TreeItem ti: tree.getItems()) {
+			DepTreeBean b = (DepTreeBean) ti.getData();
+			if (b.getId().equals(treeId)) {
+				return ti;
+			}
+			TreeItem ret = _findTreeItemByTreeId(ti, treeId);
+			if (ret != null) {
+				return ret;
+			}
+		}
+		return null;
+	}
+	
+	private TreeItem _findTreeItemByTreeId(TreeItem root, String treeId) {
+		DepTreeBean rootBean = (DepTreeBean) root.getData();
+		if (rootBean.getId().equals(treeId)) {
+			return root;
+		}
+		for (TreeItem item : root.getItems()) {
+			DepTreeBean b = (DepTreeBean) item.getData();
+			if (b.getId().equals(treeId)) {
+				return item;
+			}
+			if (item.getItemCount() > 0) {
+				TreeItem ret = _findTreeItemByTreeId(item, treeId);
+				if (ret != null) {
+					return ret;
+				}
+			}
+		}
+		return null;
+	}
+
+	private Shell createDepartmentDialogWithDisposeListener(DepTreeBean edited) {
+		Shell dialog = createDepartmentOperationDialog(shell, (ConfigurationBean) btnInsertDep.getData("config"),
+				(DepTreeBean) btnInsertDep.getData("parent"), edited);
+		dialog.addDisposeListener(new DisposeListener() {
+			@Override
+			public void widgetDisposed(DisposeEvent arg0) {
+				if (dialog.getData("refresh") != null) {
+					DepTreeBean selected = (DepTreeBean) dialog.getData("selection");
+					int current = config.getSelectionIndex();
+					config.deselectAll();
+					config.select(current);
+					onSelectCombo(config.getSelectionIndex());
+
+					// refill tree
+					depTree.deselectAll();
+					onSelectDepartment(selected);
+
+					// find treeitem in new tree
+					TreeItem selectedItem = findTreeItemByTreeId(depTree, selected.getId());
+					if (selectedItem != null) {
+						depTree.setSelection(selectedItem);
+						depTree.showSelection();
+					}
+					System.out.println("Selected dep: " + selected);
+				}
+
+			}
+		});
+		return dialog;
+	}
+
+	private MessageBox createYesNoDialog(Shell parent, String label) {
+		MessageBox dialog = new MessageBox(parent, SWT.YES | SWT.NO | SWT.ICON_WARNING | SWT.CENTER);
+		dialog.setText("Удаление \"" + label + "\"");
+		dialog.setMessage("Подтвердите удаление департамента.\nУдалены будут так-же поддепартаменты\nи работники.");
+		return dialog;
+	}
+
+	private static void findChildsByTreeItems(TreeItem root, List<String> cache) {
+		DepTreeBean rootItem = (DepTreeBean) root.getData();
+		cache.add(rootItem.getId());
+		for (TreeItem item : root.getItems()) {
+			DepTreeBean b = (DepTreeBean) item.getData();
+			if (rootItem.getId().equals(b.getParentId())) {
+				findChildsByTreeItems(item, cache);
+			}
+		}
+	}
+	
+	private static void drawTreeForCombo(List<DepTreeBean> items) {
+		for (DepTreeBean b: items) {
+			if (b.getParentId() == null) {
+				drawTreeForCombo(items, b, 1);
+				//break;
+			}
+		}
+	}
+	
+	private static void drawTreeForCombo(List<DepTreeBean> items, DepTreeBean parent, int level) {
+		for (DepTreeBean b: items) {
+			if (parent.getId().equals(b.getParentId())) {
+				String t = "";
+				for (int i=0; i < level; i++) {
+					t +="  ";
+				}
+				b.setName(t + " " + b.getName());
+				drawTreeForCombo(items, b ,level+1);
+			}
+		}
+	}
+	
+	private static void findChildsByDepTreeBean(List<DepTreeBean> items, DepTreeBean parent, List<DepTreeBean> childs) {
+		for (DepTreeBean b: items) {
+			if (parent.getId().equals(b.getParentId())) {
+				childs.add(b);
+				findChildsByDepTreeBean(items, b, childs);
+			}
+		}
 	}
 }
