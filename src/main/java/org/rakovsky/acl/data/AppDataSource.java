@@ -19,8 +19,12 @@ public class AppDataSource {
 	private static AppDataSource instance;
 	private final static Lock instanceLock = new ReentrantLock(true);
 	private String datasourceSchema;
+	private String employeeTable;
+	private String departmentTable;
 	private static final String confPrefix = "dataSource.";
 	private static final String schemaPropName = String.format("%sschemaName", confPrefix);
+	private static final String departmentTablePropName = String.format("%sdeparmentTableName", confPrefix);
+	private static final String employeeTablePropName = String.format("%semployeeTableName", confPrefix);
 	private AppDataSource(String config) {
 		//HikariConfig cfg = new HikariConfig(config);
 		Properties poolProps = new Properties();
@@ -29,8 +33,13 @@ public class AppDataSource {
 			InputStream is = new FileInputStream(config);
 			p.load(is);
 			this.datasourceSchema = p.getProperty(schemaPropName);
+			this.departmentTable = p.getProperty(departmentTablePropName,"CFG_FUNC_DEPARTMENT");
+			this.employeeTable = p.getProperty(employeeTablePropName,"CFG_FUNC_EMPLOYEE");
 			p.stringPropertyNames().stream()
-			.filter(n -> (n.startsWith(confPrefix) && !n.equals(schemaPropName)))
+			.filter(n -> (n.startsWith(confPrefix) 
+					&& !n.equals(schemaPropName) 
+					&& !n.equals(departmentTablePropName) 
+					&& !n.equals(employeeTablePropName)))
 			.collect(Collectors.toList())
 			.forEach(pv -> poolProps.setProperty(pv.replaceFirst(confPrefix, "")
 					, p.getProperty(pv)));
@@ -87,5 +96,13 @@ public class AppDataSource {
 	
 	public static void close(Connection c) {
 		instance._closeConnection(c);
+	}
+	
+	public static String getEmployeeTableName() {
+		return instance.employeeTable;
+	}
+	
+	public static String getDepartmentTableName() {
+		return instance.departmentTable;
 	}
 }

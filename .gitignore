@@ -3,3 +3,6 @@
 build
 .project
 target
+.dbeaver
+/1
+Scripts

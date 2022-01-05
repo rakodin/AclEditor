@@ -9,8 +9,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ConfigurationRepository {
-	private static final String DEP_TABLE = "CFG_FUNC_DEP_TMP";
-	private static final String EMP_TABLE = "CFG_FUNC_EMP_TMP";
+	/*
+	 * private static final String DEP_TABLE = "CFG_FUNC_DEP_TMP"; private static
+	 * final String EMP_TABLE = "CFG_FUNC_EMP_TMP";
+	 */
 
 	public static List<ConfigurationBean> getConfigurations() {
 		Connection c = AppDataSource.get();
@@ -36,7 +38,7 @@ public class ConfigurationRepository {
 		List<DepTreeBean> ret = new ArrayList<>();
 		try {
 			String sql = "WITH DEPS AS (SELECT D.FUNC_DEPARTMENT_CD, D.PARENT_DEPARTMENT_CD, D.DESCR " + "FROM "
-					+ DEP_TABLE + " D " + "WHERE D.CONFIGURATION_CD = ?)\n" + "SELECT DP.* FROM  DEPS DP\n"
+					+ AppDataSource.getDepartmentTableName() + " D " + "WHERE D.CONFIGURATION_CD = ?)\n" + "SELECT DP.* FROM  DEPS DP\n"
 					+ "START WITH PARENT_DEPARTMENT_CD IS NULL CONNECT BY PRIOR FUNC_DEPARTMENT_CD = PARENT_DEPARTMENT_CD";
 			PreparedStatement s = c.prepareStatement(sql);
 			s.setString(1, configId);
@@ -61,7 +63,8 @@ public class ConfigurationRepository {
 		List<EmplBean> ret = new ArrayList<>();
 		try {
 			String sql = "select E.FUNC_EMPLOYEE_CD, S.USER_ID, E.PERSON_ID, E.FUNC_DEPARTMENT_CD, E.START_DT, E.END_DT, S.LOGIN, S.USER_SECOND_NAME, "
-					+ "S.USER_NAME, S.USER_PATRONYMIC_NAME " + "FROM " + EMP_TABLE
+					+ "S.USER_NAME, S.USER_PATRONYMIC_NAME FROM " 
+					+ AppDataSource.getEmployeeTableName()
 					+ " E INNER JOIN PER_PERSON PP ON PP.PERSON_ID =  E.PERSON_ID \n"
 					+ "INNER JOIN SU_USER S ON S.USER_ID = PP.LINKED_USER_ID WHERE E.FUNC_DEPARTMENT_CD = ?";
 			PreparedStatement s = c.prepareStatement(sql);
@@ -90,7 +93,9 @@ public class ConfigurationRepository {
 		String id = null;
 		try {
 			id = getId(12, c);
-			PreparedStatement s = c.prepareStatement("INSERT INTO " + DEP_TABLE + "(FUNC_DEPARTMENT_CD, PARENT_DEPARTMENT_CD, CONFIGURATION_CD, DESCR) "
+			PreparedStatement s = c.prepareStatement("INSERT INTO " 
+			+ AppDataSource.getDepartmentTableName() 
+			+ "(FUNC_DEPARTMENT_CD, PARENT_DEPARTMENT_CD, CONFIGURATION_CD, DESCR) "
 					+ "VALUES(?,?,?,?)");
 			s.setString(1, id);
 			if (newDep.getParentId() == null) {
@@ -124,7 +129,8 @@ public class ConfigurationRepository {
 	public static void updateDepartment(DepTreeBean newDep) {
 		Connection c = AppDataSource.get();
 		try {
-			PreparedStatement s = c.prepareStatement("UPDATE " + DEP_TABLE + " SET PARENT_DEPARTMENT_CD=?, CONFIGURATION_CD=?, DESCR=? WHERE FUNC_DEPARTMENT_CD=?");
+			PreparedStatement s = c.prepareStatement("UPDATE " + AppDataSource.getDepartmentTableName() 
+			+ " SET PARENT_DEPARTMENT_CD=?, CONFIGURATION_CD=?, DESCR=? WHERE FUNC_DEPARTMENT_CD=?");
 			if (newDep.getParentId() == null) {
 				s.setNull(1, Types.VARCHAR);
 			} else {
@@ -160,12 +166,16 @@ public class ConfigurationRepository {
 	}
 	
 	private static PreparedStatement buildRemoveDepartmentQuery(List<String> ids, Connection c) throws SQLException {
-		final StringBuilder query = new StringBuilder("DELETE FROM ").append(DEP_TABLE).append(" WHERE FUNC_DEPARTMENT_CD IN (");
+		final StringBuilder query = new StringBuilder("DELETE FROM ")
+				.append(AppDataSource.getDepartmentTableName())
+				.append(" WHERE FUNC_DEPARTMENT_CD IN (");
 		return doBuildListQuery(query, ids, c);
 	}
 	
 	private static PreparedStatement buildRemoveEmployeeFromDepsQuery(List <String> depIds, Connection c) throws SQLException {
-		final StringBuilder query = new StringBuilder("DELETE FROM ").append(EMP_TABLE).append(" WHERE FUNC_DEPARTMENT_CD IN(");
+		final StringBuilder query = new StringBuilder("DELETE FROM ")
+				.append(AppDataSource.getEmployeeTableName())
+				.append(" WHERE FUNC_DEPARTMENT_CD IN(");
 		return doBuildListQuery(query, depIds, c);
 	}
 	
