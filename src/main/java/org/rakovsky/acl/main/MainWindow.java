@@ -40,6 +40,7 @@ import org.rakovsky.acl.data.DepTreeBean;
 import org.rakovsky.acl.data.DepTreeField;
 import org.rakovsky.acl.data.EmplBean;
 import org.rakovsky.acl.data.EmplField;
+import org.rakovsky.acl.data.Utils;
 
 import com.ibm.icu.impl.Pair;
 
@@ -51,7 +52,7 @@ public class MainWindow {
 	private Combo config;
 	protected Tree depTree;
 
-	private static final SimpleDateFormat sdf = new SimpleDateFormat("MM.dd.yyyy");
+	private static final SimpleDateFormat sdf = Utils.RUDATE;
 	private Table empTable;
 	private TableColumn empUserIdCol;
 	private TableColumn empPersonIdCol;

@@ -4,6 +4,6 @@ import java.text.SimpleDateFormat;
 
 public class Utils {
 
-	public static final SimpleDateFormat RUDATE = new SimpleDateFormat("dd.MM.yyyy");
+	public static final SimpleDateFormat RUDATE = new SimpleDateFormat("yyyy-MM-dd");
 
 }

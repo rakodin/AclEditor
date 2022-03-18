@@ -66,7 +66,8 @@ public class ConfigurationRepository {
 					+ "S.USER_NAME, S.USER_PATRONYMIC_NAME FROM " 
 					+ AppDataSource.getEmployeeTableName()
 					+ " E INNER JOIN PER_PERSON PP ON PP.PERSON_ID =  E.PERSON_ID \n"
-					+ "INNER JOIN SU_USER S ON S.USER_ID = PP.LINKED_USER_ID WHERE E.FUNC_DEPARTMENT_CD = ?";
+					+ "INNER JOIN SU_USER S ON S.USER_ID = PP.LINKED_USER_ID WHERE E.FUNC_DEPARTMENT_CD = ?\n"
+					+ "ORDER BY S.USER_SECOND_NAME, S.USER_NAME, S.USER_PATRONYMIC_NAME";
 			PreparedStatement s = c.prepareStatement(sql);
 			s.setString(1, depId);
 			ResultSet rs = s.executeQuery();

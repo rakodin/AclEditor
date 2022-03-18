@@ -24,7 +24,7 @@ public class EmplBean {
 	private String login;
 	private Date startDate;
 	private Date endDate;
-	private static final SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
+	private static final SimpleDateFormat sdf = Utils.RUDATE;
 	
 	public static List<Pair<EmplField,String>> getColumns(EmplBean em) {
 		List<Pair<EmplField,String>> ret = new ArrayList<>();
